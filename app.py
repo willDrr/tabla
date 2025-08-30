@@ -1,12 +1,16 @@
 from flask import Flask, render_template, request, redirect, url_for, send_file
 import sqlite3
 import io
+import locale
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side, NamedStyle
 from datetime import datetime
 from pathlib import Path
 
 from werkzeug.utils import secure_filename
+
+locale.setlocale(locale.LC_TIME, "es_CR.UTF-8")  # Costa Rica Spanish
+
 
 # Ensure this directory exists at startup
 RECEIPTS_DIR = Path("static/receipts")
@@ -112,6 +116,9 @@ def index():
         query += " AND e.payment_type = ?"
         params.append(payment_type)
 
+
+    print("prinitn mnth aftre something")
+    print(month)
     query += " ORDER BY e.date DESC"
 
     with get_conn() as conn:
@@ -132,8 +139,14 @@ def index():
         "factura_aparte_usd": sum(e["amount"] for e in expenses if e["factura_aparte"] and e["currency"] == "USD") or 0,
     }
 
-    return render_template("index.html", expenses=expenses, providers=providers, current_month=current_month, stats=stats)
+    return render_template("index.html", expenses=expenses, providers=providers, current_month=month, stats=stats)
 
+
+
+@app.template_filter('month_name')
+def month_name(value):
+    dt = datetime.strptime(value, "%Y-%m")
+    return dt.strftime("%B %Y").capitalize()  # "Agosto 2025"
 
 @app.route("/edit/<int:id>", methods=["POST"])
 def edit(id):
