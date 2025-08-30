@@ -63,15 +63,30 @@
       }
     }
 
-    function showReceipt(src) {
-      const img = document.getElementById("receiptImage");
-      img.src = src;
-      document.getElementById("receiptModal").classList.remove("hidden");
-    }
 
-    function closeModal(id) {
-      document.getElementById(id).classList.add("hidden");
-    }
+
+    function showReceipt(src) {
+  const img = document.getElementById("receiptImage");
+
+  // fallback to placeholder if src is null/empty
+  if (!src) {
+    img.src = '{{ url_for("static", filename="receipts/placeholder.png") }}';
+  } else {
+    img.src = src;
+  }
+
+  // handle broken image dynamically
+  img.onerror = function() {
+    this.onerror = null; // prevent infinite loop
+    this.src = '{{ url_for("static", filename="receipts/placeholder.png") }}';
+  }
+
+  document.getElementById("receiptModal").classList.remove("hidden");
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.add("hidden");
+}
 
   </script>
 </body>

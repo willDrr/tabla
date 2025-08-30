@@ -419,13 +419,15 @@
 
 
 
-
 <!-- Receipt Modal -->
 <div id="receiptModal" class="hidden fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
   <div class="bg-white rounded-lg shadow-lg p-4 max-w-3xl w-full relative">
     <button onclick="closeModal('receiptModal')"
       class="absolute top-2 right-2 text-gray-200 hover:text-white text-2xl font-bold">✕</button>
-    <img id="receiptImage" src="" alt="Recibo" class="max-h-[80vh] mx-auto rounded">
+    <img id="receiptImage"
+         src="{{ url_for('static', filename='receipts/placeholder.png') }}" 
+         alt="Recibo"
+         class="max-h-[80vh] mx-auto rounded">
   </div>
 </div>
 
