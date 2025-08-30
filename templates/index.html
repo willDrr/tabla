@@ -1,0 +1,432 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="flex flex-col gap-4">
+
+  <!-- Toolbar -->
+  <div class="flex items-center justify-between gap-4 mb-6 bg-white p-4 rounded-xl shadow">
+
+    <!-- Title -->
+    <h1 class="text-2xl font-bold text-gray-800">Registro de Gastos</h1>
+
+    <!-- Search input in the middle -->
+    <div class="flex-1 mx-4">
+      <input type="text" id="searchInput" placeholder="Buscar proveedor,detalles o referencias..."
+        class="border rounded-lg p-2 w-full" onkeyup="filterTable()">
+    </div>
+
+    <!-- Action buttons -->
+    <div class="flex gap-2">
+      <!-- Add Expense -->
+      <button class="flex items-center gap-2 px-3 py-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700"
+        title="Agregar gasto" onclick="openModal('addExpenseModal')">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        </svg>
+      </button>
+
+      <!-- Add Provider -->
+      <button class="flex items-center gap-2 px-3 py-2 bg-emerald-600 text-white rounded-lg shadow hover:bg-emerald-700"
+        title="Agregar proveedor" onclick="openModal('addProviderModal')">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        </svg>
+      </button>
+
+      <!-- Export -->
+      <button class="flex items-center gap-2 px-3 py-2 bg-yellow-500 text-white rounded-lg shadow hover:bg-yellow-600"
+        title="Exportar archivo excel" onclick="exportToExcel()">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+          <path
+            d="M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zm-1 15H6v-2h12v2zm0-4H6v-2h12v2zm0-4H6V8h12v2z" />
+        </svg>
+      </button>
+
+      <!-- Filter Modal Trigger -->
+      <button class="flex items-center gap-2 px-3 py-2 bg-gray-200 text-gray-700 rounded-lg shadow hover:bg-gray-300"
+        title="Filtrar" onclick="openModal('filterModal')">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2l-7 7v6l-4 2v-8L3 6V4z" />
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Stats Panel -->
+<div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
+  <div class="bg-white rounded-xl shadow p-4 text-center">
+    <div class="text-gray-500 text-sm">Registros este mes</div>
+    <div class="text-2xl font-bold text-gray-800">{{ stats.total_records }}</div>
+  </div>
+  <div class="bg-white rounded-xl shadow p-4 text-center">
+    <div class="text-gray-500 text-sm">Total CRC</div>
+    <div class="text-2xl font-bold text-gray-800">₡{{ "{:,.2f}".format(stats.total_crc) }}</div>
+  </div>
+  <div class="bg-white rounded-xl shadow p-4 text-center">
+    <div class="text-gray-500 text-sm">Total USD</div>
+    <div class="text-2xl font-bold text-gray-800">${{ "{:,.2f}".format(stats.total_usd) }}</div>
+  </div>
+  <!-- Factura Aparte Stats -->
+<div class="bg-red-100 rounded-xl shadow p-4 text-center">
+  <div class="text-red-600 text-sm">Factura Aparte</div>
+  <div class="text-2xl font-bold text-red-800">{{ stats.factura_aparte_count }} registros</div>
+  <div class="text-sm text-red-700">
+    ₡{{ "{:,.2f}".format(stats.factura_aparte_crc) }} | ${{ "{:,.2f}".format(stats.factura_aparte_usd) }}
+  </div>
+</div>
+
+</div>
+
+
+  <!-- Filter Modal -->
+  <div id="filterModal"
+    class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-md rounded-xl shadow-lg p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold">Filtrar Gastos</h3>
+        <button class="text-gray-500" onclick="closeModal('filterModal')">✕</button>
+      </div>
+
+      <form method="GET" action="/" class="space-y-4">
+        <div class="flex flex-col">
+          <label class="text-xs text-gray-600 mb-1">Mes</label>
+          <input type="month" name="month" value="{{ request.args.get('month', current_month) }}"
+            class="border rounded-lg p-2 w-full">
+        </div>
+
+
+        <div class="flex flex-col">
+          <label class="text-xs text-gray-600 mb-1">Proveedor</label>
+          <select name="provider" class="border rounded-lg p-2 w-full">
+            <option value="">Todos</option>
+            {% for p in providers %}
+            <option value="{{ p['id'] }}" {% if request.args.get('provider')==p['id']|string %}selected{% endif %}>{{
+              p['name'] }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="flex flex-col">
+          <label class="text-xs text-gray-600 mb-1">Tipo de Pago</label>
+          <select name="payment_type" class="border rounded-lg p-2 w-full">
+            <option value="">Todos</option>
+            <option value="na" {% if request.args.get('payment_type')=='na' %}selected{% endif %}>NA</option>
+            <option value="cash" {% if request.args.get('payment_type')=='cash' %}selected{% endif %}>Cash</option>
+            <option value="card" {% if request.args.get('payment_type')=='card' %}selected{% endif %}>Card</option>
+            <option value="transfer" {% if request.args.get('payment_type')=='transfer' %}selected{% endif %}>Transfer
+            </option>
+            <option value="sinpe" {% if request.args.get('payment_type')=='sinpe' %}selected{% endif %}>SINPE</option>
+          </select>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <a href="/" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">Reset</a>
+          <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">Filtrar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  {% if providers|length == 0 %}
+  <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800">
+    No hay proveedores aún. Agrega uno con el botón "Agregar Proveedor" antes de registrar un gasto.
+  </div>
+  {% endif %}
+
+
+  <div class="bg-white rounded-xl shadow overflow-hidden">
+    <table class="w-full text-sm">
+      <thead class="bg-gray-100 text-gray-700">
+        <tr>
+          <th class="p-3 text-left">Fecha</th>
+          <th class="p-3 text-left">Proveedor</th>
+          <th class="p-3 text-left">Pago</th>
+          <th class="p-3 text-right">Monto</th>
+          <th class="p-3 text-left">Moneda</th>
+          <th class="p-3 text-left">Ref. Factura</th>
+          <th class="p-3 text-left">Ref. Pago</th>
+          <th class="p-3 text-center">Enviado Email</th>
+          <th class="p-3 text-center">Factura Aparte</th>
+          <th class="p-3 text-center">Recibo</th>
+          <th class="p-3 text-right">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in expenses %}
+        <tr class="border-t hover:bg-gray-50">
+          <td class="p-3">{{ e['date'] }}</td>
+          <td class="p-3">{{ e['proveedor'] }}</td>
+          <td class="p-3 capitalize">{{ e['payment_type'] }}</td>
+          <td class="p-3 text-right">
+            {% if e['currency'] == 'CRC' %}
+            ₡{{ '{:,.2f}'.format(e['amount']) }}
+            {% else %}
+            ${{ '{:,.2f}'.format(e['amount']) }}
+            {% endif %}
+          </td>
+
+          <td class="p-3">{{ e['currency'] }}</td>
+          <td class="p-3">{{ e['factura_ref'] or '-' }}</td>
+          <td class="p-3">{{ e['payment_ref'] or '-' }}</td>
+          <td class="p-3 text-center">
+            {% if e['delivered_email'] %}
+            <span
+              class="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs">Sí</span>
+            {% else %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 text-xs">No</span>
+            {% endif %}
+          </td>
+          <td class="p-3 text-center">
+            {% if e['factura_aparte'] %}
+            <span
+              class="inline-flex items-center px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 text-xs">Sí</span>
+            {% else %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 text-xs">No</span>
+            {% endif %}
+          </td>
+
+
+          <td class="p-3 text-center">
+            {% if e['receipt_path'] %}
+            <a href="javascript:void(0);"
+              onclick="showReceipt('{{ url_for('static', filename='receipts/' ~ e['receipt_path']) }}')"
+              class="text-indigo-600 hover:text-indigo-800" title="Ver recibo">
+              <!-- Eye Icon -->
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 inline-block" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 
+                 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+            </a>
+            {% else %}
+            <span class="text-gray-400">-</span>
+            {% endif %}
+          </td>
+
+          <td class="p-3 text-right">
+            <button class="px-2 py-1 bg-amber-500 text-white rounded hover:bg-amber-600"
+              onclick="openModal('editModal-{{ e['id'] }}')">Editar</button>
+            <form method="POST" action="/delete/{{ e['id'] }}" class="inline"
+              onsubmit="event.preventDefault(); confirmDelete(this);">
+              <button type="submit" class="px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700">Eliminar</button>
+            </form>
+          </td>
+        </tr>
+
+        <!-- Edit Modal -->
+        <div id="editModal-{{ e['id'] }}"
+          class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div class="bg-white w-full max-w-md rounded-xl shadow-lg p-6">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-lg font-semibold">Editar Gasto</h3>
+              <button class="text-gray-500" onclick="closeModal('editModal-{{ e['id'] }}')">✕</button>
+            </div>
+            <form method="POST" action="/edit/{{ e['id'] }}" class="space-y-3" enctype="multipart/form-data">
+              <input type="date" name="date" value="{{ e['date'] }}" class="border rounded-lg p-2 w-full" required>
+
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs text-gray-600 mb-1">Proveedor</label>
+                  <select name="proveedor_id" class="border rounded-lg p-2 w-full" required>
+                    {% for p in providers %}
+                    <!-- <option value="{{ e['proveedor_id'] }}" selected></option> -->
+                    <option value="{{ p['id'] }}" {% if e['proveedor_id']==p['id'] %}selected{% endif %}>{{ p['name'] }}
+                    </option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs text-gray-600 mb-1">Tipo de Pago</label>
+                  <select name="payment_type" class="border rounded-lg p-2 w-full" required>
+                    <option value="na" {% if e['payment_type']=='na' %}selected{% endif %}>NA</option>
+                    <option value="cash" {% if e['payment_type']=='cash' %}selected{% endif %}>Cash</option>
+                    <option value="card" {% if e['payment_type']=='card' %}selected{% endif %}>Card</option>
+                    <option value="transfer" {% if e['payment_type']=='transfer' %}selected{% endif %}>Transfer</option>
+                    <option value="sinpe" {% if e['payment_type']=='sinpe' %}selected{% endif %}>SINPE</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs text-gray-600 mb-1">Monto</label>
+                  <input type="number" step="0.01" name="amount" value="{{ e['amount'] }}"
+                    class="border rounded-lg p-2 w-full" required>
+                </div>
+                <div>
+                  <label class="block text-xs text-gray-600 mb-1">Moneda</label>
+                  <select name="currency" class="border rounded-lg p-2 w-full" required>
+                    <option value="CRC" {% if e['currency']=='CRC' %}selected{% endif %}>CRC</option>
+                    <option value="USD" {% if e['currency']=='USD' %}selected{% endif %}>USD</option>
+                  </select>
+                </div>
+              </div>
+
+              <input type="text" name="factura_ref" value="{{ e['factura_ref'] }}" placeholder="Factura Ref"
+                class="border rounded-lg p-2 w-full">
+              <input type="text" name="payment_ref" value="{{ e['payment_ref'] }}" placeholder="Ref de Pago"
+                class="border rounded-lg p-2 w-full">
+              <textarea name="details" placeholder="Detalles"
+                class="border rounded-lg p-2 w-full">{{ e['details'] }}</textarea>
+
+
+                <div class="grid grid-cols-1 gap-3">
+  <div>
+    <label class="block text-xs text-gray-600 mb-1">Adjuntar Recibo</label>
+    <input type="file" name="receipt_path" accept="image/*" class="border rounded-lg p-2 w-full" value="{{ e['receipt_path'] }}">
+  </div>
+</div>
+
+
+              <div class="flex items-center gap-6">
+                <label class="inline-flex items-center gap-2 text-sm">
+                  <input type="checkbox" name="delivered_email" {% if e['delivered_email'] %}checked{% endif %}>
+                  Enviado por correo
+                </label>
+                <label class="inline-flex items-center gap-2 text-sm">
+                  <input type="checkbox" name="factura_aparte" {% if e['factura_aparte'] %}checked{% endif %}>
+                  Factura aparte
+                </label>
+              </div>
+
+              <div class="flex justify-end gap-2 pt-2">
+                <button type="button" class="px-3 py-2 rounded-lg bg-gray-200 hover:bg-gray-300"
+                  onclick="closeModal('editModal-{{ e['id'] }}')">Cancelar</button>
+                <button type="submit"
+                  class="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700">Guardar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
+<!-- Add Expense Modal -->
+<div id="addExpenseModal"
+  class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+  <div class="bg-white w-full max-w-md rounded-xl shadow-lg p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-lg font-semibold">Agregar Gasto</h3>
+      <button class="text-gray-500" onclick="closeModal('addExpenseModal')">✕</button>
+    </div>
+    <form method="POST" action="/" class="space-y-3">
+      <input type="date" name="date" class="border rounded-lg p-2 w-full" required>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs text-gray-600 mb-1">Proveedor</label>
+          <select name="proveedor_id" class="border rounded-lg p-2 w-full" required {% if providers|length==0
+            %}disabled{% endif %}>
+            {% for p in providers %}
+            <option value="{{ p['id'] }}">{{ p['name'] }}</option>
+            {% endfor %}
+          </select>
+          {% if providers|length == 0 %}
+          <p class="text-xs text-yellow-700 mt-1">Primero agrega un proveedor.</p>
+          {% endif %}
+        </div>
+        <div>
+          <label class="block text-xs text-gray-600 mb-1">Tipo de Pago</label>
+          <select name="payment_type" class="border rounded-lg p-2 w-full" required>
+            <option value="na">NA</option>
+            <option value="cash">Cash</option>
+            <option value="card">Card</option>
+            <option value="transfer">Transfer</option>
+            <option value="sinpe">SINPE</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs text-gray-600 mb-1">Monto</label>
+          <input type="number" step="0.01" name="amount" class="border rounded-lg p-2 w-full" required>
+        </div>
+        <div>
+          <label class="block text-xs text-gray-600 mb-1">Moneda</label>
+          <select name="currency" class="border rounded-lg p-2 w-full" required>
+            <option value="CRC">CRC</option>
+            <option value="USD">USD</option>
+          </select>
+        </div>
+      </div>
+
+      <input type="text" name="factura_ref" placeholder="Factura Ref" class="border rounded-lg p-2 w-full">
+      <input type="text" name="payment_ref" placeholder="Ref de Pago" class="border rounded-lg p-2 w-full">
+      <textarea name="details" placeholder="Detalles" class="border rounded-lg p-2 w-full"></textarea>
+
+      <div class="grid grid-cols-1 gap-3">
+  <div>
+    <label class="block text-xs text-gray-600 mb-1">Adjuntar Recibo</label>
+    <input type="file" name="receipt_path" accept="image/*" class="border rounded-lg p-2 w-full">
+  </div>
+</div>
+
+
+      <div class="flex items-center gap-6">
+        <label class="inline-flex items-center gap-2 text-sm">
+          <input type="checkbox" name="delivered_email">
+          Enviado por correo
+        </label>
+        <label class="inline-flex items-center gap-2 text-sm">
+          <input type="checkbox" name="factura_aparte">
+          Factura aparte
+        </label>
+      </div>
+
+      <div class="flex justify-between items-center pt-2">
+        <button type="button" class="text-sm text-emerald-700 hover:underline"
+          onclick="closeModal('addExpenseModal'); openModal('addProviderModal');">+ Agregar proveedor</button>
+        <div class="flex gap-2">
+          <button type="button" class="px-3 py-2 rounded-lg bg-gray-200 hover:bg-gray-300"
+            onclick="closeModal('addExpenseModal')">Cancelar</button>
+          <button type="submit" class="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700" {% if
+            providers|length==0 %}disabled{% endif %}>Guardar</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+<!-- Add Provider Modal -->
+<div id="addProviderModal"
+  class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+  <div class="bg-white w-full max-w-sm rounded-xl shadow-lg p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-lg font-semibold">Agregar Proveedor</h3>
+      <button class="text-gray-500" onclick="closeModal('addProviderModal')">✕</button>
+    </div>
+    <form method="POST" action="/providers/add" class="space-y-3">
+      <input type="text" name="name" placeholder="Nombre del proveedor" class="border rounded-lg p-2 w-full" required>
+      <div class="flex justify-end gap-2">
+        <button type="button" class="px-3 py-2 rounded-lg bg-gray-200 hover:bg-gray-300"
+          onclick="closeModal('addProviderModal')">Cancelar</button>
+        <button type="submit"
+          class="px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+
+
+<!-- Receipt Modal -->
+<div id="receiptModal" class="hidden fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
+  <div class="bg-white rounded-lg shadow-lg p-4 max-w-3xl w-full relative">
+    <button onclick="closeModal('receiptModal')"
+      class="absolute top-2 right-2 text-gray-200 hover:text-white text-2xl font-bold">✕</button>
+    <img id="receiptImage" src="" alt="Recibo" class="max-h-[80vh] mx-auto rounded">
+  </div>
+</div>
+
+{% endblock %}

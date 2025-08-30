@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hotel Expenses</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100 min-h-screen">
+  <div class="max-w-8xl mx-auto p-6">
+    {% block content %}{% endblock %}
+
+  </div>
+
+
+  <script>
+    function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+    function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+    function confirmDelete(form) { if (confirm('¿Eliminar este gasto?')) form.submit(); }
+
+
+    function exportToExcel() {
+      // Collect filter values
+      const month = document.querySelector('input[name="month"]')?.value;
+      const provider = document.querySelector('select[name="provider"]')?.value;
+      const payment_type = document.querySelector('select[name="payment_type"]')?.value;
+
+      // Build query string
+      let query = [];
+      if (month) query.push(`month=${encodeURIComponent(month)}`);
+      if (provider) query.push(`provider=${encodeURIComponent(provider)}`);
+      if (payment_type) query.push(`payment_type=${encodeURIComponent(payment_type)}`);
+      const url = `/export${query.length ? '?' + query.join('&') : ''}`;
+
+      // Open Excel download
+      window.location.href = url;
+    }
+
+    function filterTable() {
+      const input = document.getElementById("searchInput");
+      const filter = input.value.toLowerCase();
+      const table = document.querySelector("table tbody");
+      const rows = table.getElementsByTagName("tr");
+
+      for (let i = 0; i < rows.length; i++) {
+        const proveedor = rows[i].cells[1].textContent.toLowerCase();
+        const details = rows[i].cells[9].textContent.toLowerCase();  // your "Detalles" column
+        const facturaRef = rows[i].cells[5].textContent.toLowerCase(); // Factura Ref
+        const paymentRef = rows[i].cells[6].textContent.toLowerCase(); // Ref Pago
+
+        if (
+          proveedor.includes(filter) ||
+          details.includes(filter) ||
+          facturaRef.includes(filter) ||
+          paymentRef.includes(filter)
+        ) {
+          rows[i].style.display = "";
+        } else {
+          rows[i].style.display = "none";
+        }
+      }
+    }
+
+    function showReceipt(src) {
+      const img = document.getElementById("receiptImage");
+      img.src = src;
+      document.getElementById("receiptModal").classList.remove("hidden");
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.add("hidden");
+    }
+
+  </script>
+</body>
+
+</html>
