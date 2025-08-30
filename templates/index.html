@@ -406,14 +406,16 @@
       <button class="text-gray-500" onclick="closeModal('addProviderModal')">✕</button>
     </div>
     <form method="POST" action="/providers/add" class="space-y-3">
-      <input type="text" name="name" placeholder="Nombre del proveedor" class="border rounded-lg p-2 w-full" required>
-      <div class="flex justify-end gap-2">
-        <button type="button" class="px-3 py-2 rounded-lg bg-gray-200 hover:bg-gray-300"
-          onclick="closeModal('addProviderModal')">Cancelar</button>
-        <button type="submit"
-          class="px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700">Guardar</button>
-      </div>
-    </form>
+  <textarea name="name" placeholder="Nombre del proveedor (puede separar con comas o nuevas líneas)"
+            class="border rounded-lg p-2 w-full" rows="3" required></textarea>
+  <div class="flex justify-end gap-2">
+    <button type="button" class="px-3 py-2 rounded-lg bg-gray-200 hover:bg-gray-300"
+            onclick="closeModal('addProviderModal')">Cancelar</button>
+    <button type="submit"
+            class="px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700">Guardar</button>
+  </div>
+</form>
+
   </div>
 </div>
 

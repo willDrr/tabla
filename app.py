@@ -191,11 +191,20 @@ def delete(id):
 
 @app.route("/providers/add", methods=["POST"])
 def add_provider():
-    name = request.form.get("name", "").strip()
-    if name:
+    # Get the raw input from the form
+    raw_names = request.form.get("name", "").strip()
+    if not raw_names:
+        return redirect(url_for("index"))
+
+    names = [n.strip().title() for n in raw_names.replace("\n", ",").split(",") if n.strip()]
+
+    if names:
         with get_conn() as conn:
-            conn.execute("INSERT OR IGNORE INTO providers(name) VALUES (?)", (name,))
+            # Insert each provider, ignore duplicates
+            conn.executemany("INSERT OR IGNORE INTO providers(name) VALUES (?)", [(n,) for n in names])
+
     return redirect(url_for("index"))
+
 
 
 
