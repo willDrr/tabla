@@ -15,8 +15,19 @@
         class="border rounded-lg p-2 w-full" onkeyup="filterTable()">
     </div>
 
+
     <!-- Action buttons -->
     <div class="flex gap-2">
+      
+            <a href="/expenses" class="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition"
+   title="Ver Gastos">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7h18M3 12h18M3 17h18" />
+  </svg>
+  Ver Gastos
+</a>
+
+      
       <!-- Add Expense -->
       <button class="flex items-center gap-2 px-3 py-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700"
         title="Agregar gasto" onclick="openModal('addExpenseModal')">

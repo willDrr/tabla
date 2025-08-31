@@ -1,7 +1,8 @@
-from flask import Flask, render_template, request, redirect, url_for, send_file
+from flask import Flask, render_template, request, redirect, url_for, send_file, Response
 import sqlite3
 import io
 import locale
+import csv
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side, NamedStyle
 from datetime import datetime
@@ -242,7 +243,84 @@ def delete_provider(provider_id):
         conn.execute("DELETE FROM providers WHERE id=?", (provider_id,))
     return redirect(url_for("index"))
 
+@app.route("/expenses", methods=["GET"])
+def expenses():
+    filters = []
+    params = []
 
+    # --- Optional filters from query string ---
+    provider_id = request.args.get("provider")
+    if provider_id:
+        filters.append("e.proveedor_id = ?")
+        params.append(provider_id)
+
+    payment_type = request.args.get("payment_type")
+    if payment_type:
+        filters.append("e.payment_type = ?")
+        params.append(payment_type)
+
+    currency = request.args.get("currency")
+    if currency:
+        filters.append("e.currency = ?")
+        params.append(currency)
+
+    date_from = request.args.get("date_from")
+    if date_from:
+        filters.append("date(e.date) >= date(?)")
+        params.append(date_from)
+
+    date_to = request.args.get("date_to")
+    if date_to:
+        filters.append("date(e.date) <= date(?)")
+        params.append(date_to)
+
+    sql = """
+        SELECT e.id, e.date, e.payment_ref, e.factura_ref,
+               p.name as provider, e.payment_type,
+               e.amount, e.currency, e.details
+        FROM expenses e
+        JOIN providers p ON e.proveedor_id = p.id
+    """
+    if filters:
+        sql += " WHERE " + " AND ".join(filters)
+    sql += " ORDER BY e.date DESC"
+
+    with get_conn() as conn:
+        rows = conn.execute(sql, params).fetchall()
+
+    return render_template("expenses.html", expenses=rows)
+
+
+@app.route("/expenses/export")
+def export_expenses():
+    filters, params = [], []
+
+    provider_id = request.args.get("provider")
+    if provider_id:
+        filters.append("e.proveedor_id = ?")
+        params.append(provider_id)
+
+    sql = """
+        SELECT e.date, p.name as provider, e.payment_type,
+               e.amount, e.currency, e.factura_ref, e.details
+        FROM expenses e
+        JOIN providers p ON e.proveedor_id = p.id
+    """
+    if filters:
+        sql += " WHERE " + " AND ".join(filters)
+    sql += " ORDER BY e.date DESC"
+
+    with get_conn() as conn:
+        rows = conn.execute(sql, params).fetchall()
+
+    def generate():
+        data = csv.writer([])
+        yield ",".join(["Fecha","Proveedor","Tipo","Monto","Moneda","Factura","Detalles"]) + "\n"
+        for r in rows:
+            yield ",".join(str(x) for x in r) + "\n"
+
+    return Response(generate(), mimetype="text/csv",
+                    headers={"Content-Disposition": "attachment; filename=gastos.csv"})
 
 @app.route("/export", methods=["GET"])
 def export_excel():
