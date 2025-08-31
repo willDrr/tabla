@@ -128,7 +128,7 @@ def index():
     with sqlite3.connect(DB) as conn:
         conn.row_factory = sqlite3.Row
         expenses = conn.execute(query, params).fetchall()
-        providers = conn.execute("SELECT * FROM providers").fetchall()
+        providers = conn.execute("SELECT * FROM providers ORDER BY name COLLATE NOCASE ASC").fetchall()
 
     stats = {
         "total_records": len(expenses),
@@ -218,6 +218,29 @@ def add_provider():
 
     return redirect(url_for("index"))
 
+
+# List all providers
+@app.route("/providers")
+def providers():
+    with get_conn() as conn:
+        rows = conn.execute("SELECT id, name FROM providers ORDER BY name").fetchall()
+    return render_template("providers.html", providers=rows)
+
+# Update provider
+@app.route("/providers/update/<int:provider_id>", methods=["POST"])
+def update_provider(provider_id):
+    name = request.form.get("name", "").strip().title()
+    if name:
+        with get_conn() as conn:
+            conn.execute("UPDATE providers SET name=? WHERE id=?", (name, provider_id))
+    return redirect(url_for("index"))
+
+# Delete provider
+@app.route("/providers/delete/<int:provider_id>", methods=["POST"])
+def delete_provider(provider_id):
+    with get_conn() as conn:
+        conn.execute("DELETE FROM providers WHERE id=?", (provider_id,))
+    return redirect(url_for("index"))
 
 
 

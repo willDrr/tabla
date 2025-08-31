@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-lg mx-auto bg-white shadow-md rounded-xl p-6">
+  <h2 class="text-2xl font-bold mb-4">Proveedores</h2>
+  
+  <table class="w-full border-collapse">
+    <thead>
+      <tr class="bg-gray-100">
+        <th class="p-2 text-left">Nombre</th>
+        <th class="p-2">Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in providers %}
+      <tr class="border-b">
+        <td class="p-2">{{ p['name'] }}</td>
+        <td class="p-2 flex gap-2 justify-center">
+          <!-- Edit -->
+          <form action="{{ url_for('update_provider', provider_id=p['id']) }}" method="POST" class="inline">
+            <input type="text" name="name" value="{{ p['name'] }}" 
+              class="border rounded p-1 text-sm w-32">
+            <button class="px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">Actualizar</button>
+          </form>
+          <!-- Delete -->
+          <form action="{{ url_for('delete_provider', provider_id=p['id']) }}" method="POST" class="inline"
+            onsubmit="return confirm('¿Eliminar este proveedor?')">
+            <button class="px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm">Eliminar</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
