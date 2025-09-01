@@ -253,6 +253,11 @@ def expenses():
     filters = []
     params = []
 
+    # --- Compute default date range: current month ---
+    today = date.today()
+    first_day = today.replace(day=1)
+    last_day = (today.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
+
     # --- Optional filters from query string ---
     provider_id = request.args.get("provider")
     if provider_id:
@@ -269,16 +274,17 @@ def expenses():
         filters.append("e.currency = ?")
         params.append(currency)
 
-    date_from = request.args.get("date_from")
-    if date_from:
-        filters.append("date(e.date) >= date(?)")
-        params.append(date_from)
+    # --- Handle dates: use defaults if missing ---
+    date_from = request.args.get("date_from") or first_day.isoformat()
+    date_to = request.args.get("date_to") or last_day.isoformat()
 
-    date_to = request.args.get("date_to")
-    if date_to:
-        filters.append("date(e.date) <= date(?)")
-        params.append(date_to)
+    filters.append("date(e.date) >= date(?)")
+    params.append(date_from)
 
+    filters.append("date(e.date) <= date(?)")
+    params.append(date_to)
+
+    # --- Build SQL query ---
     sql = """
         SELECT e.id, e.date, e.payment_ref, e.factura_ref,
                p.name as provider, e.payment_type,
@@ -290,20 +296,18 @@ def expenses():
         sql += " WHERE " + " AND ".join(filters)
     sql += " ORDER BY e.date DESC"
 
+    # --- Fetch data ---
     with get_conn() as conn:
         rows = conn.execute(sql, params).fetchall()
         providers = conn.execute("SELECT id, name FROM providers ORDER BY name ASC").fetchall()
 
-    today = date.today()
-    first_day = today.replace(day=1)
-    last_day = (today.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
-
+    # --- Render template ---
     return render_template(
         "expenses.html",
         expenses=rows,
         providers=providers,
-        date_from=first_day.isoformat(),
-        date_to=last_day.isoformat(),
+        date_from=date_from,
+        date_to=date_to,
         provider=provider_id,
         payment_type=payment_type,
         currency=currency
@@ -495,34 +499,53 @@ def download_expenses():
     year = request.args.get("year")
     month = request.args.get("month")
 
-    conn = get_conn()
-    cur = conn.cursor()
+    if not year or not month:
+        return "Missing year or month", 400
 
-    query = "SELECT date, receipt_path FROM expenses"
-    params = []
+    with get_conn() as conn:
+        cur = conn.cursor()
 
-    if year and month:
-        query += " WHERE strftime('%Y', date) = ? AND strftime('%m', date) = ?"
-        params = [year, month]
-
-    query += " ORDER BY date ASC"
-    cur.execute(query, params)
-    records = cur.fetchall()
+        # Get records for the given month
+        query = """
+            SELECT id, date, receipt_path
+            FROM expenses
+            WHERE strftime('%Y', date) = ? AND strftime('%m', date) = ?
+            ORDER BY date ASC
+        """
+        cur.execute(query, [year, month])
+        records = cur.fetchall()
 
     if not records:
-        return "No records found for that month."
+        # If no records found, return template with flag for modal
+        return render_template("expenses.html", no_records_found=True)
 
-    zip_path = "static/receipts/expenses_ordered.zip"
+    # Prepare zip and track missing files
+    missing = []
 
-    with ZipFile(zip_path, "w") as zipf:
-        for idx, (date, filename) in enumerate(records, start=1):
-            filepath = os.path.join(RECEIPTS_DIR, filename)
-            if os.path.exists(filepath):
-                safe_date = date.replace(":", "-")
-                new_name = f"{idx:03d}-{safe_date}-{filename}"
-                zipf.write(filepath, new_name)
+    ZIP_OUTPUT_PATH = os.path.join(RECEIPTS_DIR, "expenses_ordered.zip")
 
-    return send_file(zip_path, as_attachment=True)
+
+    with ZipFile(ZIP_OUTPUT_PATH, "w") as zipf:
+        for idx, (expense_id, expense_date, receipt_path) in enumerate(records, start=1):
+            if not receipt_path:
+                missing.append(f"ID {expense_id} | {expense_date} | No receipt_path set")
+                continue
+
+            file_path = os.path.join(RECEIPTS_DIR, receipt_path)
+            if os.path.exists(file_path):
+                # Safe name: 001-2025-09-01-receipt.jpg
+                formatted_date = datetime.strptime(expense_date, "%Y-%m-%d").strftime("%Y-%m-%d")
+                file_name = f"{idx:03d}-{formatted_date}-{os.path.basename(receipt_path)}"
+                zipf.write(file_path, arcname=file_name)
+            else:
+                missing.append(f"ID {expense_id} | {expense_date} | File not found: {receipt_path}")
+
+        # Add a text file to ZIP if any files were missing
+        if missing:
+            missing_report = "\n".join(missing)
+            zipf.writestr("missing_receipts.txt", missing_report)
+
+    return send_file(ZIP_OUTPUT_PATH, as_attachment=True)
 
 
 
@@ -532,3 +555,4 @@ if __name__ == "__main__":
         Path(DB).touch()  # created; init_db() will structure it
     init_db()
     app.run(debug=True)
+

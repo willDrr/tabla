@@ -89,6 +89,20 @@
     </form>
   </div>
 
+  <!-- Modal for No Records Found -->
+{% if no_records_found %}
+<div class="fixed inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center z-50">
+  <div class="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full">
+    <h3 class="text-xl font-semibold text-gray-700">🚫 No Records Found</h3>
+    <p class="text-gray-600 mt-4">Sorry, there are no records found for the selected month.</p>
+    <div class="mt-6 flex justify-end">
+      <button onclick="closeZipModal()" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">Close</button>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+
 </div>
 
 <!-- Expenses Table -->
