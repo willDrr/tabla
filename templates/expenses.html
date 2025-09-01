@@ -1,73 +1,120 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h2 class="text-2xl font-bold mb-6">Gastos</h2>
+<h2 class="text-3xl font-bold mb-8 text-gray-800">Gastos</h2>
 
-<a href="/" class="inline-flex items-center gap-2 px-4 py-2 bg-gray-800 text-white font-semibold rounded-lg shadow hover:bg-gray-700 transition">
+<!-- Back Button -->
+<a href="/" 
+   class="inline-flex items-center gap-2 px-4 py-2 bg-gray-800 text-white font-semibold rounded-lg shadow hover:bg-gray-700 transition mb-8">
   <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-6H9v6a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V9z" />
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+          d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-6H9v6a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V9z" />
   </svg>
   Inicio
 </a>
 
-<br>
-<br>
+<!-- Filters & Actions -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
 
-<!-- Filter Form -->
-<form method="GET" class="mb-6 flex gap-4 flex-wrap">
-  <input type="date" name="date_from" class="border rounded p-2" placeholder="Desde">
-  <input type="date" name="date_to" class="border rounded p-2" placeholder="Hasta">
+  <!-- Filter Form -->
+  <div class="bg-white shadow rounded-xl p-6 border border-gray-200">
+    <h3 class="text-lg font-semibold text-gray-700 mb-4">🔎 Filtrar Gastos</h3>
+    <form method="GET" class="flex flex-wrap gap-3">
+      
+      <input type="date" name="date_from" value="{{ date_from }}" class="border rounded-lg p-2 flex-1" required>
+      <input type="date" name="date_to" value="{{ date_to }}" class="border rounded-lg p-2 flex-1" required>
 
-  <select name="provider" class="border rounded p-2">
-    <option value="">Proveedor</option>
-    {% for p in providers %}
-      <option value="{{ p.id }}">{{ p.name }}</option>
-    {% endfor %}
-  </select>
 
-  <select name="payment_type" class="border rounded p-2">
-    <option value="">Tipo de pago</option>
-    <option value="cash">Efectivo</option>
-    <option value="card">Tarjeta</option>
-    <option value="transfer">Transferencia</option>
-    <option value="sinpe">Sinpe</option>
-  </select>
+      <select name="provider" class="border rounded-lg p-2 flex-1">
+        <option value="">Proveedor</option>
+        {% for p in providers %}
+          <option value="{{ p.id }}">{{ p.name }}</option>
+        {% endfor %}
+      </select>
 
-  <select name="currency" class="border rounded p-2">
-    <option value="">Moneda</option>
-    <option value="CRC">CRC</option>
-    <option value="USD">USD</option>
-  </select>
+      <select name="payment_type" class="border rounded-lg p-2 flex-1">
+        <option value="">Tipo de pago</option>
+        <option value="cash">Efectivo</option>
+        <option value="card">Tarjeta</option>
+        <option value="transfer">Transferencia</option>
+        <option value="sinpe">Sinpe</option>
+      </select>
 
-  <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg">Filtrar</button>
-  <a href="/expenses/export?{{ request.query_string|safe }}"
-     class="px-4 py-2 bg-green-600 text-white rounded-lg">Exportar CSV</a>
-</form>
+      <select name="currency" class="border rounded-lg p-2 flex-1">
+        <option value="">Moneda</option>
+        <option value="CRC">CRC</option>
+        <option value="USD">USD</option>
+      </select>
+
+      <div class="flex gap-2 w-full">
+        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition">
+          Filtrar
+        </button>
+      <a href="/expenses/export?date_from={{ date_from }}&date_to={{ date_to }}{% if provider %}&provider={{ provider }}{% endif %}{% if payment_type %}&payment_type={{ payment_type }}{% endif %}{% if currency %}&currency={{ currency }}{% endif %}"
+        class="px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition">
+        Exportar CSV
+      </a>
+      </div>
+    </form>
+  </div>
+
+  <!-- Download by Month -->
+  <div class="bg-white shadow rounded-xl p-6 border border-gray-200">
+    <h3 class="text-lg font-semibold text-gray-700 mb-4">📂 Descargar Recibos</h3>
+    <form action="/expenses/download" method="get" class="flex flex-wrap gap-3">
+      <select name="year" class="border rounded-lg p-2 flex-1">
+        <option value="2025">2025</option>
+        <option value="2026">2026</option>
+        <option value="2027">2027</option>
+      </select>
+
+      <select name="month" class="border rounded-lg p-2 flex-1">
+        <option value="01">Enero</option>
+        <option value="02">Febrero</option>
+        <option value="03">Marzo</option>
+        <option value="04">Abril</option>
+        <option value="05">Mayo</option>
+        <option value="06">Junio</option>
+        <option value="07">Julio</option>
+        <option value="08">Agosto</option>
+        <option value="09">Septiembre</option>
+        <option value="10">Octubre</option>
+        <option value="11">Noviembre</option>
+        <option value="12">Diciembre</option>
+      </select>
+
+      <button type="submit" class="px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition w-full">
+        Descargar ZIP
+      </button>
+    </form>
+  </div>
+
+</div>
 
 <!-- Expenses Table -->
-<div class="overflow-x-auto">
+<div class="overflow-x-auto bg-white shadow rounded-xl border border-gray-200">
   <table class="table-auto border-collapse w-full text-sm">
     <thead>
       <tr class="bg-gray-100 text-left">
-        <th class="p-2 border">Fecha</th>
-        <th class="p-2 border">Proveedor</th>
-        <th class="p-2 border">Tipo</th>
-        <th class="p-2 border">Monto</th>
-        <th class="p-2 border">Moneda</th>
-        <th class="p-2 border">Factura</th>
-        <th class="p-2 border">Detalles</th>
+        <th class="p-3 border">Fecha</th>
+        <th class="p-3 border">Proveedor</th>
+        <th class="p-3 border">Tipo</th>
+        <th class="p-3 border">Monto</th>
+        <th class="p-3 border">Moneda</th>
+        <th class="p-3 border">Factura Electronica</th>
+        <th class="p-3 border">Detalles</th>
       </tr>
     </thead>
     <tbody>
       {% for e in expenses %}
-      <tr>
-        <td class="p-2 border">{{ e.date }}</td>
-        <td class="p-2 border">{{ e.provider }}</td>
-        <td class="p-2 border">{{ e.payment_type }}</td>
-        <td class="p-2 border">{{ e.amount }}</td>
-        <td class="p-2 border">{{ e.currency }}</td>
-        <td class="p-2 border">{{ e.factura_ref }}</td>
-        <td class="p-2 border">{{ e.details }}</td>
+      <tr class="hover:bg-gray-50">
+        <td class="p-3 border">{{ e.date }}</td>
+        <td class="p-3 border">{{ e.provider }}</td>
+        <td class="p-3 border">{{ e.payment_type | capitalize }}</td>
+        <td class="p-3 border">{{ e.amount }}</td>
+        <td class="p-3 border">{{ e.currency }}</td>
+        <td class="p-3 border">{{ e.factura_ref }}</td>
+        <td class="p-3 border">{{ e.details | capitalize }}</td>
       </tr>
       {% endfor %}
     </tbody>
@@ -75,4 +122,3 @@
 </div>
 
 {% endblock %}
-

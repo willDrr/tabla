@@ -66,27 +66,27 @@
 
 
     function showReceipt(src) {
-  const img = document.getElementById("receiptImage");
+      const img = document.getElementById("receiptImage");
 
-  // fallback to placeholder if src is null/empty
-  if (!src) {
-    img.src = '{{ url_for("static", filename="receipts/placeholder.png") }}';
-  } else {
-    img.src = src;
-  }
+      // fallback to placeholder if src is null/empty
+      if (!src) {
+        img.src = '{{ url_for("static", filename="receipts/placeholder.png") }}';
+      } else {
+        img.src = src;
+      }
 
-  // handle broken image dynamically
-  img.onerror = function() {
-    this.onerror = null; // prevent infinite loop
-    this.src = '{{ url_for("static", filename="receipts/placeholder.png") }}';
-  }
+      // handle broken image dynamically
+      img.onerror = function () {
+        this.onerror = null; // prevent infinite loop
+        this.src = '{{ url_for("static", filename="receipts/placeholder.png") }}';
+      }
 
-  document.getElementById("receiptModal").classList.remove("hidden");
-}
+      document.getElementById("receiptModal").classList.remove("hidden");
+    }
 
-function closeModal(id) {
-  document.getElementById(id).classList.add("hidden");
-}
+    function closeModal(id) {
+      document.getElementById(id).classList.add("hidden");
+    }
 
   </script>
 </body>

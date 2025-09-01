@@ -1,4 +1,9 @@
 from flask import Flask, render_template, request, redirect, url_for, send_file, Response
+from zipfile import ZipFile
+
+from datetime import date, timedelta
+
+import os
 import sqlite3
 import io
 import locale
@@ -287,8 +292,22 @@ def expenses():
 
     with get_conn() as conn:
         rows = conn.execute(sql, params).fetchall()
+        providers = conn.execute("SELECT id, name FROM providers ORDER BY name ASC").fetchall()
 
-    return render_template("expenses.html", expenses=rows)
+    today = date.today()
+    first_day = today.replace(day=1)
+    last_day = (today.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
+
+    return render_template(
+        "expenses.html",
+        expenses=rows,
+        providers=providers,
+        date_from=first_day.isoformat(),
+        date_to=last_day.isoformat(),
+        provider=provider_id,
+        payment_type=payment_type,
+        currency=currency
+    )
 
 
 @app.route("/expenses/export")
@@ -299,6 +318,26 @@ def export_expenses():
     if provider_id:
         filters.append("e.proveedor_id = ?")
         params.append(provider_id)
+
+    date_from = request.args.get("date_from")
+    if date_from:
+        filters.append("e.date >= ?")
+        params.append(date_from)
+
+    date_to = request.args.get("date_to")
+    if date_to:
+        filters.append("e.date <= ?")
+        params.append(date_to)
+
+    payment_type = request.args.get("payment_type")
+    if payment_type:
+        filters.append("e.payment_type = ?")
+        params.append(payment_type)
+
+    currency = request.args.get("currency")
+    if currency:
+        filters.append("e.currency = ?")
+        params.append(currency)
 
     sql = """
         SELECT e.date, p.name as provider, e.payment_type,
@@ -314,13 +353,21 @@ def export_expenses():
         rows = conn.execute(sql, params).fetchall()
 
     def generate():
-        data = csv.writer([])
-        yield ",".join(["Fecha","Proveedor","Tipo","Monto","Moneda","Factura","Detalles"]) + "\n"
+        # Header row
+        yield "Fecha,Proveedor,Tipo,Monto,Moneda,Factura,Detalles\n"
+        # Data rows
         for r in rows:
-            yield ",".join(str(x) for x in r) + "\n"
+            # escape commas and quotes properly
+            line = ",".join(f'"{str(x)}"' if x is not None else "" for x in r)
+            yield line + "\n"
 
-    return Response(generate(), mimetype="text/csv",
-                    headers={"Content-Disposition": "attachment; filename=gastos.csv"})
+    return Response(
+        generate(),
+        mimetype="text/csv",
+        headers={"Content-Disposition": "attachment; filename=gastos.csv"}
+    )
+
+
 
 @app.route("/export", methods=["GET"])
 def export_excel():
@@ -441,6 +488,42 @@ def export_excel():
         as_attachment=True,
         download_name=filename
     )
+
+
+@app.route("/expenses/download")
+def download_expenses():
+    year = request.args.get("year")
+    month = request.args.get("month")
+
+    conn = get_conn()
+    cur = conn.cursor()
+
+    query = "SELECT date, receipt_path FROM expenses"
+    params = []
+
+    if year and month:
+        query += " WHERE strftime('%Y', date) = ? AND strftime('%m', date) = ?"
+        params = [year, month]
+
+    query += " ORDER BY date ASC"
+    cur.execute(query, params)
+    records = cur.fetchall()
+
+    if not records:
+        return "No records found for that month."
+
+    zip_path = "static/receipts/expenses_ordered.zip"
+
+    with ZipFile(zip_path, "w") as zipf:
+        for idx, (date, filename) in enumerate(records, start=1):
+            filepath = os.path.join(RECEIPTS_DIR, filename)
+            if os.path.exists(filepath):
+                safe_date = date.replace(":", "-")
+                new_name = f"{idx:03d}-{safe_date}-{filename}"
+                zipf.write(filepath, new_name)
+
+    return send_file(zip_path, as_attachment=True)
+
 
 
 if __name__ == "__main__":

@@ -171,8 +171,8 @@
           <th class="p-3 text-left">Pago</th>
           <th class="p-3 text-right">Monto</th>
           <th class="p-3 text-left">Moneda</th>
-          <th class="p-3 text-left">Ref. Factura</th>
-          <th class="p-3 text-left">Ref. Pago</th>
+          <th class="p-3 text-left">Factura Electronica</th>
+          <th class="p-3 text-left">Referencia de Pago</th>
           <th class="p-3 text-center">Enviado Email</th>
           <th class="p-3 text-center">Factura Aparte</th>
           <th class="p-3 text-center">Recibo</th>
@@ -249,7 +249,7 @@
           <div class="bg-white w-full max-w-md rounded-xl shadow-lg p-6">
             <div class="flex items-center justify-between mb-4">
               <h3 class="text-lg font-semibold">Editar Gasto</h3>
-              <button class="text-gray-500" onclick="closeModal('editModal-{{ e['id'] }}')">✕</button>
+              <button class="text-red-600 hover:text-red-800" onclick="closeModal('editModal-{{ e['id'] }}')">✕</button>
             </div>
             <form method="POST" action="/edit/{{ e['id'] }}" class="space-y-3" enctype="multipart/form-data">
               <input type="date" name="date" value="{{ e['date'] }}" class="border rounded-lg p-2 w-full mb-2" required>
@@ -340,7 +340,7 @@
   <div class="bg-white w-full max-w-md rounded-xl shadow-lg p-6">
     <div class="flex items-center justify-between mb-4">
       <h3 class="text-lg font-semibold">Agregar Gasto</h3>
-      <button class="text-gray-500" onclick="closeModal('addExpenseModal')">✕</button>
+      <button class="text-red-600 hover:text-red-800" onclick="closeModal('addExpenseModal')">✕</button>
     </div>
     <form method="POST" action="/" class="space-y-3">
       <input type="date" name="date" class="border rounded-lg p-2 w-full" required>
@@ -428,7 +428,7 @@
   <div class="bg-white w-full max-w-sm rounded-xl shadow-lg p-6">
     <div class="flex items-center justify-between mb-4">
       <h3 class="text-lg font-semibold">Agregar Proveedor</h3>
-      <button class="text-gray-500" onclick="closeModal('addProviderModal')">✕</button>
+      <button class="text-red-600 hover:text-red-800" onclick="closeModal('addProviderModal')">✕</button>
     </div>
     <form method="POST" action="/providers/add" class="space-y-3">
       <textarea name="name" placeholder="Nombre del proveedor (puede separar con comas o nuevas líneas)"
@@ -450,7 +450,7 @@
 <div id="receiptModal" class="hidden fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
   <div class="bg-white rounded-lg shadow-lg p-4 max-w-3xl w-full relative">
     <button onclick="closeModal('receiptModal')"
-      class="absolute top-2 right-2 text-gray-200 hover:text-white text-2xl font-bold">✕</button>
+      class="absolute top-2 right-2 text-gray-200 text-red-600 hover:text-red-800 text-2xl font-bold">✕</button>
     <img id="receiptImage" src="{{ url_for('static', filename='receipts/placeholder.png') }}" alt="Recibo"
       class="max-h-[80vh] mx-auto rounded">
   </div>
@@ -463,7 +463,7 @@
   <div class="bg-white w-full max-w-lg rounded-xl shadow-lg p-6">
     <div class="flex items-center justify-between mb-4">
       <h3 class="text-lg font-semibold">Proveedores</h3>
-      <button class="text-gray-500" onclick="closeModal('providersModal')">✕</button>
+      <button class="text-red-600 hover:text-red-800" onclick="closeModal('providersModal')">✕</button>
     </div>
 
     <!-- Add Provider Inline Form -->
